@@ -5,7 +5,6 @@
 //  Created by Arnaud Dupuy on 2024-10-03.
 //
 
-
 import Foundation
 
 enum PathOption {

@@ -9,25 +9,23 @@ import SwiftUI
 
 struct SettingsView: View {
     @AppStorage("pathOption") private var pathOptionRawValue: String = "full"
-    @EnvironmentObject var exclusionManager: ExclusionManager  // Access ExclusionManager from environment
+    @EnvironmentObject var exclusionManager: ExclusionManager
 
-    @State private var newExcludedItem: String = ""  // For adding new items
+    @State private var newExcludedItem: String = ""
 
     var body: some View {
         TabView {
-            // General settings tab
             GeneralSettingsView()
                 .tabItem {
                     Label("General", systemImage: "gear")
                 }
 
-            // Exclusions tab
             ExclusionsSettingsView()
                 .tabItem {
                     Label("Exclusions", systemImage: "minus.circle")
                 }
         }
-        .frame(width: 500, height: 300) // Adjust the size as needed
+        .frame(width: 500, height: 300)
         .padding()
     }
 }
@@ -37,7 +35,6 @@ struct GeneralSettingsView: View {
 
     var body: some View {
         Form {
-            // Path option picker
             Picker("Path Display", selection: $pathOptionRawValue) {
                 Text("Full Path").tag("full")
                 Text("Relative Path").tag("relative")
@@ -50,11 +47,10 @@ struct GeneralSettingsView: View {
 
 struct ExclusionsSettingsView: View {
     @EnvironmentObject var exclusionManager: ExclusionManager
-    @State private var newExcludedItem: String = ""  // For adding new items
+    @State private var newExcludedItem: String = ""
 
     var body: some View {
         Form {
-            // Dynamic list of excluded items
             Section(header: Text("Excluded Items")) {
                 List {
                     ForEach(exclusionManager.excludedItems, id: \.self) { item in
@@ -73,7 +69,6 @@ struct ExclusionsSettingsView: View {
                     .onDelete(perform: deleteExcludedItem)
                 }
 
-                // TextField to add new exclusion
                 HStack {
                     TextField("Add new excluded item", text: $newExcludedItem)
                         .textFieldStyle(RoundedBorderTextFieldStyle())
@@ -97,7 +92,7 @@ struct ExclusionsSettingsView: View {
         let trimmedItem = newExcludedItem.trimmingCharacters(in: .whitespaces)
         guard !trimmedItem.isEmpty, !exclusionManager.excludedItems.contains(trimmedItem) else { return }
         exclusionManager.addExcludedItem(trimmedItem)
-        newExcludedItem = ""  // Reset the input field
+        newExcludedItem = ""
     }
 
     private func removeExcludedItem(_ item: String) {

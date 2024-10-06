@@ -13,7 +13,6 @@ struct FileListView: View {
 
     var body: some View {
         VStack {
-            // List of filtered files and directories
             List {
                 ForEach(viewModel.filteredNodes) { node in
                     FileNodeView(
@@ -26,13 +25,11 @@ struct FileListView: View {
             }
             .listStyle(SidebarListStyle())
 
-            // Filter inputs at the bottom
             VStack {
                 HStack {
                     TextField("Filter by name", text: $viewModel.nameFilterQuery)
                         .textFieldStyle(RoundedBorderTextFieldStyle())
 
-                    // Case-sensitive toggle for name filter
                     Button(action: {
                         viewModel.isNameFilterCaseSensitive.toggle()
                     }) {
@@ -46,7 +43,6 @@ struct FileListView: View {
                     TextField("Filter by content", text: $viewModel.contentFilterQuery)
                         .textFieldStyle(RoundedBorderTextFieldStyle())
 
-                    // Case-sensitive toggle for content filter
                     Button(action: {
                         viewModel.isContentFilterCaseSensitive.toggle()
                     }) {

@@ -73,9 +73,8 @@ class FileManagerViewModel: ObservableObject {
 
         let nodeName = url.lastPathComponent
 
-        // Check exclusion with the centralized exclusion manager
         if exclusionManager.isExcluded(nodeName: nodeName) {
-            return nil  // Exclude this file or folder
+            return nil
         }
 
         if isDirectory.boolValue {
@@ -85,22 +84,21 @@ class FileManagerViewModel: ObservableObject {
             if !children.isEmpty {
                 return FileNode(url: url, isDirectory: true, children: children)
             } else {
-                return nil  // Exclude empty directories
+                return nil
             }
         } else {
             return FileNode(url: url, isDirectory: false)
         }
     }
 
-    // Grep search implementation
     func grepSearch(in directory: URL, query: String, caseSensitive: Bool) async -> [URL] {
         let task = Process()
         let pipe = Pipe()
 
         task.executableURL = URL(fileURLWithPath: "/usr/bin/grep")
         task.arguments = [
-            caseSensitive ? "" : "-i",  // Case sensitivity
-            "-rl",  // Search recursively and return matching file names
+            caseSensitive ? "" : "-i",
+            "-rl",
             query,
             directory.path
         ]
@@ -113,22 +111,19 @@ class FileManagerViewModel: ObservableObject {
             let filePaths = output.components(separatedBy: "\n").filter { !$0.isEmpty }
             return filePaths.map { URL(fileURLWithPath: $0) }
         } catch {
-            print("Grep command failed: \(error)")
             return []
         }
     }
 
-    // Setup debounce to delay filtering until user stops typing
     private func setupFilterDebounce() {
         Publishers.CombineLatest($nameFilterQuery, $contentFilterQuery)
             .debounce(for: .milliseconds(300), scheduler: RunLoop.main)
             .sink { [weak self] _, _ in
-                self?.applyFiltering()  // Trigger filtering whenever either query changes
+                self?.applyFiltering()
             }
             .store(in: &cancellables)
     }
 
-    // Perform the grep search and update filtered files
     private func performContentSearch(query: String, at directory: URL) async {
         guard !query.isEmpty else { return }
 
@@ -259,7 +254,7 @@ class FileManagerViewModel: ObservableObject {
                 } else {
                     Task {
                         await loadContent(of: node.url)
-                        objectWillChange.send()  // Trigger a UI update once content is loaded
+                        objectWillChange.send()
                     }
                     fileContentMatches = false
                 }
@@ -278,21 +273,16 @@ class FileManagerViewModel: ObservableObject {
         }
 
         if isTextFile(url: url) {
-            do {
-                let content = try String(contentsOf: url, encoding: .utf8)
-                await MainActor.run {
-                    self.fileContents[url] = content
-                    objectWillChange.send()
-                }
-            } catch {
-                print("Failed to load content for file: \(error)")
+            let content = try? String(contentsOf: url, encoding: .utf8)
+            await MainActor.run {
+                self.fileContents[url] = content
+                objectWillChange.send()
             }
         } else {
             await MainActor.run {
                 self.fileContents[url] = "Binary file skipped: \(url.lastPathComponent)"
                 objectWillChange.send()
             }
-            print("Skipping binary file: \(url.lastPathComponent)")
         }
     }
 

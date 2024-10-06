@@ -28,7 +28,7 @@ struct FileNodeView: View {
                     }
                     .frame(width: 12)
             } else {
-                Spacer().frame(width: 18)  // Align with folder icons
+                Spacer().frame(width: 18)
             }
 
             Image(systemName: node.isDirectory ? "folder" : "doc")
@@ -40,12 +40,12 @@ struct FileNodeView: View {
                     toggleSelection(for: node)
                 }
         }
-        .contentShape(Rectangle())  // Makes the entire row tappable
+        .contentShape(Rectangle())
         .onTapGesture {
             handleTap(for: node)
         }
-        .padding(.leading, CGFloat(level * 20))  // Indentation based on level
-        .contextMenu {  // Context menu for right-click
+        .padding(.leading, CGFloat(level * 20))
+        .contextMenu {
             if node.isDirectory {
                 Button("Exclude \(node.url.lastPathComponent)") {
                     excludeFolder(node)
@@ -66,8 +66,8 @@ struct FileNodeView: View {
                              expandedNodes: $expandedNodes,
                              selectedFiles: $selectedFiles,
                              level: level + 1)
-                    .environmentObject(viewModel)  // Pass the viewModel down
-                    .environmentObject(exclusionManager)  // Pass the exclusionManager down
+                    .environmentObject(viewModel)
+                    .environmentObject(exclusionManager)
             }
         }
     }
