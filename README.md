@@ -4,11 +4,12 @@
 
 **CodeFusion** is a macOS application designed to streamline the process of merging multiple files into a single consolidated copy, making it easier to send content to Language Learning Models (LLMs). Whether you're preparing data for analysis, training, or other machine learning tasks, CodeFusion simplifies file management, selection, and merging with an intuitive user interface.
 
-This is a MacOs port (with enhancements) of this project: https://github.com/dclipca/CodeFusion
+This is a macOS port (with enhancements) of this project: [dclipca/CodeFusion](https://github.com/dclipca/CodeFusion)
 
 ## Table of Contents
 
 - [Features](#features)
+- [Download](#download)
 - [Installation](#installation)
 - [Usage](#usage)
 - [Configuration](#configuration)
@@ -27,20 +28,51 @@ This is a MacOs port (with enhancements) of this project: https://github.com/dcl
 - **Dynamic Updates:** Automatically detects and updates changes in the selected files.
 - **User-Friendly Interface:** Built with SwiftUI for a seamless and responsive user experience.
 
+## Download
+
+**CodeFusion** is available as a prebuilt application. You can download the latest version directly from the [Release Page](https://github.com/arnaud512/CodeFusion/releases). This allows you to start using the app immediately without the need to build it from source.
+
 ## Installation
 
-### Prerequisites
+You have two options to get **CodeFusion** up and running on your macOS device:
+
+### Option 1: Download Prebuilt Application
+
+1. **Visit the Release Page**
+
+   Go to the [CodeFusion Releases](https://github.com/arnaud512/CodeFusion/releases) page.
+
+2. **Download the Latest Release**
+
+   - Locate the latest release.
+   - Download the `.zip` file.
+
+3. **Install the Application**
+
+   - Open the downloaded `.zip` file.
+   - Drag the **CodeFusion** app to your `Applications` folder.
+
+4. **Launch CodeFusion**
+
+   - Navigate to your `Applications` folder.
+   - Double-click **CodeFusion** to launch the app.
+
+### Option 2: Build from Source
+
+If you prefer to build **CodeFusion** from source, follow these steps:
+
+#### Prerequisites
 
 - **macOS 12.0** or later
 - **Xcode 14** or later
 - **Swift 5.5** or later
 
-### Steps
+#### Steps
 
 1. **Clone the Repository**
 
    ```bash
-   git clone https://github.com/yourusername/CodeFusion.git
+   git clone https://github.com/arnaud512/CodeFusion.git
    ```
 
 2. **Open the Project**
