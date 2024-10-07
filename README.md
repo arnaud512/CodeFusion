@@ -5,6 +5,7 @@
 **CodeFusion** is a macOS application designed to streamline the process of merging multiple files into a single consolidated copy, making it easier to send content to Language Learning Models (LLMs). Whether you're preparing data for analysis, training, or other machine learning tasks, CodeFusion simplifies file management, selection, and merging with an intuitive user interface.
 
 This is a macOS port (with enhancements) of this project: [dclipca/CodeFusion](https://github.com/dclipca/CodeFusion)
+
 This app is mainly made with o1
 
 ## Table of Contents
