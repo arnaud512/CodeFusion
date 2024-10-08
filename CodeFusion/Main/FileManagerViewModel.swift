@@ -81,16 +81,12 @@ class FileManagerViewModel: ObservableObject {
         if isDirectory.boolValue {
             let contents = (try? FileManager.default.contentsOfDirectory(at: url, includingPropertiesForKeys: nil)) ?? []
             let children = await contents.asyncCompactMap { await createFileNode(from: $0) }
-
-            if !children.isEmpty {
-                return FileNode(url: url, isDirectory: true, children: children)
-            } else {
-                return nil
-            }
+            return FileNode(url: url, isDirectory: true, children: children)
         } else {
             return FileNode(url: url, isDirectory: false)
         }
     }
+
 
     func grepSearch(in directory: URL, query: String, caseSensitive: Bool, ignoredPatterns: [String]) async -> [URL] {
         let task = Process()
@@ -140,22 +136,32 @@ class FileManagerViewModel: ObservableObject {
 
     private func applyFiltering() {
         isFiltering = true
-        filteredNodes = []
+        var filteredByName = rootNodes
 
         if !nameFilterQuery.isEmpty {
-            filteredNodes = rootNodes.compactMap {
+            filteredByName = rootNodes.compactMap {
                 filterNode($0, nameQuery: nameFilterQuery, isNameFilterCaseSensitive: isNameFilterCaseSensitive)
             }
-        } else {
-            filteredNodes = rootNodes
         }
 
         if !contentFilterQuery.isEmpty, let rootURL = rootNodes.first?.url {
-            performContentSearch(query: contentFilterQuery, at: rootURL)
+            Task {
+                let caseSensitive = isContentFilterCaseSensitive
+                let ignoredPatterns = exclusionManager.excludedItems
+
+                let matchedURLs = await grepSearch(in: rootURL, query: contentFilterQuery, caseSensitive: caseSensitive, ignoredPatterns: ignoredPatterns)
+
+                await MainActor.run {
+                    self.filteredNodes = filterNodesWithMatchingFiles(in: filteredByName, matchingURLs: matchedURLs)
+                    self.isFiltering = false
+                }
+            }
         } else {
+            filteredNodes = filteredByName
             isFiltering = false
         }
     }
+
 
     private func filterNode(_ node: FileNode, nameQuery: String, isNameFilterCaseSensitive: Bool) -> FileNode? {
         if node.isDirectory {
@@ -207,11 +213,19 @@ class FileManagerViewModel: ObservableObject {
 
     func loadContentsOfSelectedFiles() async {
         isContentLoading = true
+
+        let deselectedFiles = fileContents.keys.filter { !selectedFiles.contains($0) }
+        for file in deselectedFiles {
+            fileContents.removeValue(forKey: file)
+        }
+
         for url in selectedFiles {
             await self.loadContent(of: url)
         }
+
         isContentLoading = false
     }
+
 
     func copySelectedFilesToClipboard(withPathOption pathOption: PathOption) {
         let pasteboard = NSPasteboard.general
