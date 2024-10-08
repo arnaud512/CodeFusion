@@ -39,40 +39,44 @@ struct ContentView: View {
                 }
                 .frame(minWidth: 300)
             } else {
-                FileListView(expandedNodes: $expandedNodes)
-                    .frame(minWidth: 300)
-
                 VStack {
-                    if viewModel.isLoading {
-                        ProgressView("Loading...")
-                    } else if !viewModel.selectedFiles.isEmpty {
-                        ScrollView {
-                            LazyVStack {
-                                ForEach(Array(viewModel.selectedFiles), id: \.self) { url in
-                                    if let content = viewModel.fileContents[url] {
-                                        VStack(alignment: .leading) {
-                                            Text("### START OF FILE: \(url.lastPathComponent) ###")
-                                                .font(.headline)
-                                            TextEditor(text: .constant(content))
-                                                .frame(minHeight: 200)
-                                            Text("### END OF FILE: \(url.lastPathComponent) ###")
-                                                .font(.headline)
-                                        }
-                                        .padding()
-                                        .background(Color(NSColor.textBackgroundColor))
-                                        .cornerRadius(8)
-                                    } else {
-                                        Text("Unable to load content for \(url.lastPathComponent)")
-                                            .foregroundColor(.red)
+                    FileListView(expandedNodes: $expandedNodes)
+                        .frame(minWidth: 300)
+                }
+            }
+
+            VStack {
+                if viewModel.isContentLoading {
+                    ProgressView("Loading file content...")
+                        .progressViewStyle(CircularProgressViewStyle())
+                        .padding()
+                } else if !viewModel.selectedFiles.isEmpty {
+                    ScrollView {
+                        LazyVStack {
+                            ForEach(Array(viewModel.selectedFiles), id: \.self) { url in
+                                if let content = viewModel.fileContents[url] {
+                                    VStack(alignment: .leading) {
+                                        Text("### START OF FILE: \(url.lastPathComponent) ###")
+                                            .font(.headline)
+                                        TextEditor(text: .constant(content))
+                                            .frame(minHeight: 200)
+                                        Text("### END OF FILE: \(url.lastPathComponent) ###")
+                                            .font(.headline)
                                     }
+                                    .padding()
+                                    .background(Color(NSColor.textBackgroundColor))
+                                    .cornerRadius(8)
+                                } else {
+                                    Text("Unable to load content for \(url.lastPathComponent)")
+                                        .foregroundColor(.red)
                                 }
-                                .padding()
                             }
+                            .padding()
                         }
-                    } else {
-                        Text("No files selected")
-                            .foregroundColor(.secondary)
                     }
+                } else {
+                    Text("No files selected")
+                        .foregroundColor(.secondary)
                 }
             }
         }

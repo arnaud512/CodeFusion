@@ -14,13 +14,20 @@ struct FileListView: View {
     var body: some View {
         VStack {
             List {
-                ForEach(viewModel.filteredNodes) { node in
-                    FileNodeView(
-                        node: node,
-                        expandedNodes: $expandedNodes,
-                        selectedFiles: $viewModel.selectedFiles,
-                        level: 0
-                    )
+                if viewModel.isFiltering {
+                    ProgressView("Filtering files...")
+                        .progressViewStyle(CircularProgressViewStyle())
+                        .padding()
+                        .frame(maxWidth: .infinity, alignment: .center)
+                } else {
+                    ForEach(viewModel.filteredNodes) { node in
+                        FileNodeView(
+                            node: node,
+                            expandedNodes: $expandedNodes,
+                            selectedFiles: $viewModel.selectedFiles,
+                            level: 0
+                        )
+                    }
                 }
             }
             .listStyle(SidebarListStyle())

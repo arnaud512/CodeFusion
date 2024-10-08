@@ -14,7 +14,8 @@ class FileManagerViewModel: ObservableObject {
     @Published var filteredNodes: [FileNode] = []
     @Published var selectedFiles: Set<URL> = []
     @Published var fileContents: [URL: String] = [:]
-    @Published var isLoading: Bool = false
+    @Published var isContentLoading: Bool = false
+    @Published var isFiltering: Bool = false
     @Published var nameFilterQuery: String = ""
     @Published var contentFilterQuery: String = ""
     @Published var isNameFilterCaseSensitive: Bool = false
@@ -51,7 +52,7 @@ class FileManagerViewModel: ObservableObject {
     }
 
     func loadDirectoryContents(at url: URL, expandedNodes: Binding<Set<URL>>) {
-        isLoading = true
+        isFiltering = true
         Task {
             if let node = await self.createFileNode(from: url) {
                 self.rootNodes = [node]
@@ -62,7 +63,7 @@ class FileManagerViewModel: ObservableObject {
                 self.rootNodes = []
             }
             applyFiltering()
-            self.isLoading = false
+            self.isFiltering = false
         }
     }
 
@@ -91,17 +92,30 @@ class FileManagerViewModel: ObservableObject {
         }
     }
 
-    func grepSearch(in directory: URL, query: String, caseSensitive: Bool) async -> [URL] {
+    func grepSearch(in directory: URL, query: String, caseSensitive: Bool, ignoredPatterns: [String]) async -> [URL] {
         let task = Process()
         let pipe = Pipe()
 
         task.executableURL = URL(fileURLWithPath: "/usr/bin/grep")
-        task.arguments = [
-            caseSensitive ? "" : "-i",
-            "-rl",
-            query,
-            directory.path
-        ]
+
+        var arguments: [String] = []
+        if !caseSensitive {
+            arguments.append("-i")
+        }
+        arguments.append("-rl")
+        arguments.append(query)
+
+        for pattern in ignoredPatterns {
+            if pattern.hasSuffix("/") {
+                arguments.append("--exclude-dir=\(pattern)")
+            } else {
+                arguments.append("--exclude=\(pattern)")
+            }
+        }
+
+        arguments.append(directory.path)
+
+        task.arguments = arguments
         task.standardOutput = pipe
 
         do {
@@ -124,27 +138,79 @@ class FileManagerViewModel: ObservableObject {
             .store(in: &cancellables)
     }
 
-    private func performContentSearch(query: String, at directory: URL) async {
-        guard !query.isEmpty else { return }
+    private func applyFiltering() {
+        isFiltering = true
+        filteredNodes = []
 
-        isLoading = true
-        let caseSensitive = isContentFilterCaseSensitive
-        let matchedURLs = await grepSearch(in: directory, query: query, caseSensitive: caseSensitive)
-
-        // Filter rootNodes based on grep result
-        filteredNodes = rootNodes.filter { node in
-            matchedURLs.contains(where: { url in url.path.hasPrefix(node.url.path) })
+        if !nameFilterQuery.isEmpty {
+            filteredNodes = rootNodes.compactMap {
+                filterNode($0, nameQuery: nameFilterQuery, isNameFilterCaseSensitive: isNameFilterCaseSensitive)
+            }
+        } else {
+            filteredNodes = rootNodes
         }
 
-        isLoading = false
+        if !contentFilterQuery.isEmpty, let rootURL = rootNodes.first?.url {
+            performContentSearch(query: contentFilterQuery, at: rootURL)
+        } else {
+            isFiltering = false
+        }
+    }
+
+    private func filterNode(_ node: FileNode, nameQuery: String, isNameFilterCaseSensitive: Bool) -> FileNode? {
+        if node.isDirectory {
+            let filteredChildren = node.children?.compactMap {
+                filterNode($0, nameQuery: nameQuery, isNameFilterCaseSensitive: isNameFilterCaseSensitive)
+            } ?? []
+            if !filteredChildren.isEmpty {
+                return FileNode(url: node.url, isDirectory: true, children: filteredChildren)
+            }
+        } else {
+            let fileNameMatches = isNameFilterCaseSensitive
+                ? node.url.lastPathComponent.contains(nameQuery)
+                : node.url.lastPathComponent.lowercased().contains(nameQuery.lowercased())
+
+            if fileNameMatches {
+                return node
+            }
+        }
+        return nil
+    }
+
+    private func performContentSearch(query: String, at directory: URL) {
+        Task {
+            let caseSensitive = isContentFilterCaseSensitive
+            let ignoredPatterns = exclusionManager.excludedItems
+
+            let matchedURLs = await grepSearch(in: directory, query: query, caseSensitive: caseSensitive, ignoredPatterns: ignoredPatterns)
+
+            await MainActor.run {
+                filteredNodes = filterNodesWithMatchingFiles(in: rootNodes, matchingURLs: matchedURLs)
+                isFiltering = false
+            }
+        }
+    }
+
+    private func filterNodesWithMatchingFiles(in nodes: [FileNode], matchingURLs: [URL]) -> [FileNode] {
+        return nodes.compactMap { node in
+            if node.isDirectory {
+                let filteredChildren = filterNodesWithMatchingFiles(in: node.children ?? [], matchingURLs: matchingURLs)
+                if !filteredChildren.isEmpty {
+                    return FileNode(url: node.url, isDirectory: true, children: filteredChildren)
+                }
+            } else if matchingURLs.contains(where: { $0.path == node.url.path }) {
+                return node
+            }
+            return nil
+        }
     }
 
     func loadContentsOfSelectedFiles() async {
-        isLoading = true
+        isContentLoading = true
         for url in selectedFiles {
             await self.loadContent(of: url)
         }
-        isLoading = false
+        isContentLoading = false
     }
 
     func copySelectedFilesToClipboard(withPathOption pathOption: PathOption) {
@@ -217,54 +283,6 @@ class FileManagerViewModel: ObservableObject {
             }
         }
         return tokenCount
-    }
-
-    private func applyFiltering() {
-        if nameFilterQuery.isEmpty && contentFilterQuery.isEmpty {
-            filteredNodes = rootNodes
-        } else {
-            filteredNodes = rootNodes.compactMap {
-                filterNode($0, nameQuery: nameFilterQuery, contentQuery: contentFilterQuery, isNameFilterCaseSensitive: isNameFilterCaseSensitive, isContentFilterCaseSensitive: isContentFilterCaseSensitive)
-            }
-        }
-    }
-
-    private func filterNode(_ node: FileNode, nameQuery: String, contentQuery: String, isNameFilterCaseSensitive: Bool, isContentFilterCaseSensitive: Bool) -> FileNode? {
-        if node.isDirectory {
-            let filteredChildren = node.children?.compactMap {
-                filterNode($0, nameQuery: nameQuery, contentQuery: contentQuery, isNameFilterCaseSensitive: isNameFilterCaseSensitive, isContentFilterCaseSensitive: isContentFilterCaseSensitive)
-            } ?? []
-            if !filteredChildren.isEmpty {
-                return FileNode(url: node.url, isDirectory: true, children: filteredChildren)
-            }
-        } else {
-            let fileNameMatches: Bool
-            if isNameFilterCaseSensitive {
-                fileNameMatches = nameQuery.isEmpty || node.url.lastPathComponent.contains(nameQuery)
-            } else {
-                fileNameMatches = nameQuery.isEmpty || node.url.lastPathComponent.lowercased().contains(nameQuery.lowercased())
-            }
-
-            let fileContentMatches: Bool
-            if contentQuery.isEmpty {
-                fileContentMatches = true
-            } else {
-                if let content = fileContents[node.url] {
-                    fileContentMatches = isContentFilterCaseSensitive ? content.contains(contentQuery) : content.lowercased().contains(contentQuery.lowercased())
-                } else {
-                    Task {
-                        await loadContent(of: node.url)
-                        objectWillChange.send()
-                    }
-                    fileContentMatches = false
-                }
-            }
-
-            if (fileNameMatches && contentQuery.isEmpty) || (fileContentMatches && nameQuery.isEmpty) || (fileNameMatches && fileContentMatches) {
-                return node
-            }
-        }
-        return nil
     }
 
     func loadContent(of url: URL) async {
