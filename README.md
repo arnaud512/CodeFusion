@@ -32,7 +32,7 @@ This app is mainly made with o1
 
 ## Download
 
-**CodeFusion** is available as a prebuilt application. You can download the latest version directly from the [Release Page](https://github.com/arnaud512/CodeFusion/releases). This allows you to start using the app immediately without the need to build it from source.
+**CodeFusion** is available as a prebuilt application. You can download the latest version directly from the [Mac App Store](https://apps.apple.com/app/codefusion-merge-into-one/id6736599429?mt=12) or from the [Release Page](https://github.com/arnaud512/CodeFusion/releases). This allows you to start using the app immediately without the need to build it from source.
 
 ## Installation
 
